@@ -1,20 +1,57 @@
-import { StatusBar } from "expo-status-bar";
 import { Text, ImageBackground, View, TouchableOpacity } from "react-native";
-
+import { StatusBar } from "expo-status-bar";
+import { styled } from "nativewind";
 import {
   useFonts,
   Roboto_400Regular,
   Roboto_700Bold,
 } from "@expo-google-fonts/roboto";
 import { BaiJamjuree_700Bold } from "@expo-google-fonts/bai-jamjuree";
+
+import * as AuthSession from "expo-auth-session";
+import { useEffect } from "react";
+
 import blurPng from "./src/assets/luz.png";
 import Logo from "./src/assets/spacetime-logo.svg";
 import Stripes from "./src/assets/stripes.svg";
-import { styled } from "nativewind";
+import React from "react";
+import { api } from "./lib/api";
 
 const StyledStripes = styled(Stripes);
 
+const discovery = {
+  authorizationEndpoint: "https://github.com/login/oauth/authorize",
+  tokenEndpoint: "https://github.com/login/oauth/access_token",
+  revocationEndpoint:
+    "https://github.com/settings/connections/applications/56142c1aeb27a24191cc",
+};
+
 export default function App() {
+  const [request, response, loginWithGithub] = AuthSession.useAuthRequest(
+    {
+      clientId: "56142c1aeb27a24191cc",
+      scopes: ["identity"],
+      redirectUri: AuthSession.makeRedirectUri({
+        scheme: "spacetime",
+      }),
+    },
+    discovery
+  );
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { code } = response.params;
+      api
+        .post("/register", {
+          code,
+        })
+        .then((response) => {
+          const { token } = response.data;
+          console.log(token);
+        });
+    }
+  }, [response]);
+
   const [hasLoadedFonts] = useFonts({
     Roboto_400Regular,
     Roboto_700Bold,
@@ -45,6 +82,7 @@ export default function App() {
           </Text>
         </View>
         <TouchableOpacity
+          onPress={() => loginWithGithub()}
           activeOpacity={0.7}
           className="rounded-full bg-green-500 px-5 py-3"
         >
